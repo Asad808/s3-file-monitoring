@@ -27,26 +27,30 @@ First, ensure that Python 3 is installed on your system. Then set up a virtual e
 python -m venv venv
 source venv/bin/activate  # On Windows use `venv\Scripts\activate`
 pip install -r requirements.txt
+```
 
-## Configuration
+### Configuration
+
 Make sure your AWS credentials are set up properly. This can be done via environment variables, AWS credentials file, or AWS CLI:
 
 ```bash
 set AWS_ACCESS_KEY_ID="your_access_key_id"
 set AWS_SECRET_ACCESS_KEY="your_secret_access_key"
 set AWS_DEFAULT_REGION="your_region"
-
+```
 Replace "your_access_key_id", "your_secret_access_key", and "your_region" with your actual AWS credentials.
 
-## Running the Script
+### Running the Script
 With the dependencies installed and the environment configured, you can start the script using:
 
 ```bash
 python monitor.py
+```
 
-## Makefile Usage
+### Makefile Usage
 For convenience, a 'Makefile' is included to handle setup and running:
 
 ```bash
 make install  # Sets up the Python virtual environment and installs dependencies
 make run      # Runs the script
+```
