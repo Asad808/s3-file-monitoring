@@ -65,5 +65,7 @@ def start_monitoring(folder_path, bucket_name, region_name):
         observer.stop()
     observer.join()
 
-# Example usage
-start_monitoring(r'C:\Users\ASUS\Desktop\Taleemabad\Job_Test_Task', 'fold-test', 'ap-south-1')
+local_folder_path = r'your-local-folder-path-which-you-have-to-monitor'
+s3_bucket_name = 'your-bucket-name'
+region_name = 'ap-south-1'
+start_monitoring(local_folder_path, s3_bucket_name, region_name)
