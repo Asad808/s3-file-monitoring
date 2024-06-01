@@ -11,11 +11,23 @@ def verify_filename_format(filename):
     return re.match(pattern, base_part) is not None
 
 class S3Uploader(FileSystemEventHandler):
-    def __init__(self, folder_path, bucket_name, region_name):
+    def __init__(self, folder_path, bucket_name, aws_access_key_id, aws_secret_access_key, region_name):
         self.folder_path = folder_path
         self.bucket_name = bucket_name
-        self.s3_client = boto3.client('s3', region_name=region_name)
+        self.s3_client = boto3.client(
+            's3',
+            aws_access_key_id=aws_access_key_id,
+            aws_secret_access_key=aws_secret_access_key,
+            region_name=region_name
+        )
         self.log_file_path = os.path.join(folder_path, "wrong_convention_names.txt")
+
+    def upload_existing_files(self):
+        for subdir, dirs, files in os.walk(self.folder_path):
+            for file in files:
+                file_path = os.path.join(subdir, file)
+                if verify_filename_format(file_path) and not self.is_file_in_bucket(file_path):
+                    self.upload_file_to_s3(file_path)
 
     def on_created(self, event):
         if not event.is_directory and verify_filename_format(event.src_path):
@@ -52,10 +64,11 @@ class S3Uploader(FileSystemEventHandler):
         with open(self.log_file_path, 'a') as log_file:
             log_file.write(file_path + '\n')
 
-def start_monitoring(folder_path, bucket_name, region_name):
-    event_handler = S3Uploader(folder_path, bucket_name, region_name)
+def start_monitoring(folder_path, bucket_name, aws_access_key_id, aws_secret_access_key, region_name):
+    uploader = S3Uploader(folder_path, bucket_name, aws_access_key_id, aws_secret_access_key, region_name)
+    uploader.upload_existing_files()  # Upload all existing files before starting monitoring
     observer = Observer()
-    observer.schedule(event_handler, folder_path, recursive=True)
+    observer.schedule(uploader, folder_path, recursive=True)
     observer.start()
     print(f"Monitoring {folder_path} and uploading to {bucket_name}")
     try:
@@ -65,7 +78,11 @@ def start_monitoring(folder_path, bucket_name, region_name):
         observer.stop()
     observer.join()
 
+
 local_folder_path = r'your-local-folder-path-which-you-have-to-monitor'
-s3_bucket_name = 'your-bucket-name'
+bucket_name = 'your-bucket-name'
+aws_access_key_id = 'AKIAWR******73CF'
+aws_secret_access_key = 'e9**********TpebK'
 region_name = 'ap-south-1'
-start_monitoring(local_folder_path, s3_bucket_name, region_name)
+
+start_monitoring(local_folder_path, bucket_name, aws_access_key_id, aws_secret_access_key, region_name)
