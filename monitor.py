@@ -7,7 +7,7 @@ from watchdog.events import FileSystemEventHandler
 def verify_filename_format(filename):
     base_part = os.path.splitext(os.path.basename(filename))[0]
     print("Base part for checking:", base_part)
-    pattern = r"^(?:\d{1,5}|null)-(?:\d|null)-(?:[a-z]|null)-(?:\w+|null)$"
+    pattern = r"^(?:\d{1,5})-(?:[1-5]|prep)-(?:[abcd]|null)-(?:math|english|urdu)$"
     if re.match(pattern, base_part):
         if "null" in base_part:
             return 'null_detected'
