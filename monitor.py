@@ -8,7 +8,11 @@ def verify_filename_format(filename):
     base_part = os.path.splitext(os.path.basename(filename))[0]
     print("Base part for checking:", base_part)
     pattern = r"^(?:\d{1,5}|null)-(?:\d|null)-(?:[a-z]|null)-(?:\w+|null)$"
-    return re.match(pattern, base_part) is not None
+    if re.match(pattern, base_part):
+        if "null" in base_part:
+            return 'null_detected'
+        return True
+    return False
 
 class S3Uploader(FileSystemEventHandler):
     def __init__(self, folder_path, bucket_name, aws_access_key_id, aws_secret_access_key, region_name):
@@ -26,28 +30,30 @@ class S3Uploader(FileSystemEventHandler):
         for subdir, dirs, files in os.walk(self.folder_path):
             for file in files:
                 file_path = os.path.join(subdir, file)
-                if verify_filename_format(file_path) and not self.is_file_in_bucket(file_path):
-                    self.upload_file_to_s3(file_path)
+                if "wrong_convention_names" not in file:
+                    self.handle_file_upload(file_path)
 
     def on_created(self, event):
-        if not event.is_directory and verify_filename_format(event.src_path):
-            if not self.is_file_in_bucket(event.src_path):
-                self.upload_file_to_s3(event.src_path)
-            else:
-                print(f"File already exists in the bucket: {event.src_path}")
+        if not event.is_directory and "wrong_convention_names" not in event.src_path:
+            self.handle_file_upload(event.src_path)
+
+    def handle_file_upload(self, file_path):
+        if "wrong_convention_names" in file_path:
+            return  # Skip uploading this file
+        format_result = verify_filename_format(file_path)
+        if format_result != True:
+            self.log_wrong_format(file_path)
+        if not self.is_file_in_bucket(file_path):
+            self.upload_file_to_s3(file_path)
         else:
-            self.log_wrong_format(event.src_path)
-            print(f"Filename format is incorrect: {event.src_path}")
+            print(f"File already exists in the bucket: {file_path}")
 
     def is_file_in_bucket(self, file_path):
         base_folder_name = os.path.basename(self.folder_path)
         relative_path = os.path.relpath(file_path, self.folder_path)
         s3_key = os.path.join(base_folder_name, relative_path.replace(os.sep, '/'))
         response = self.s3_client.list_objects_v2(Bucket=self.bucket_name, Prefix=s3_key)
-        for item in response.get('Contents', []):
-            if item['Key'] == s3_key:
-                return True
-        return False
+        return 'Contents' in response and any(item['Key'] == s3_key for item in response['Contents'])
 
     def upload_file_to_s3(self, file_path):
         base_folder_name = os.path.basename(self.folder_path)
@@ -66,7 +72,7 @@ class S3Uploader(FileSystemEventHandler):
 
 def start_monitoring(folder_path, bucket_name, aws_access_key_id, aws_secret_access_key, region_name):
     uploader = S3Uploader(folder_path, bucket_name, aws_access_key_id, aws_secret_access_key, region_name)
-    uploader.upload_existing_files()  # Upload all existing files before starting monitoring
+    uploader.upload_existing_files()  
     observer = Observer()
     observer.schedule(uploader, folder_path, recursive=True)
     observer.start()
@@ -78,11 +84,11 @@ def start_monitoring(folder_path, bucket_name, aws_access_key_id, aws_secret_acc
         observer.stop()
     observer.join()
 
-
 local_folder_path = r'your-local-folder-path-which-you-have-to-monitor'
 bucket_name = 'your-bucket-name'
 aws_access_key_id = 'AKIAWR******73CF'
 aws_secret_access_key = 'e9**********TpebK'
 region_name = 'ap-south-1'
+
 
 start_monitoring(local_folder_path, bucket_name, aws_access_key_id, aws_secret_access_key, region_name)
