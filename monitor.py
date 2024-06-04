@@ -43,10 +43,11 @@ class S3Uploader(FileSystemEventHandler):
         format_result = verify_filename_format(file_path)
         if format_result != True:
             self.log_wrong_format(file_path)
-        if not self.is_file_in_bucket(file_path):
-            self.upload_file_to_s3(file_path)
+        if self.is_file_in_bucket(file_path):
+            print(f"File already exists in the bucket and will be deleted: {file_path}")
+            os.remove(file_path)  # Delete the file if it already exists in the bucket
         else:
-            print(f"File already exists in the bucket: {file_path}")
+            self.upload_file_to_s3(file_path)
 
     def is_file_in_bucket(self, file_path):
         base_folder_name = os.path.basename(self.folder_path)
@@ -63,6 +64,7 @@ class S3Uploader(FileSystemEventHandler):
             with open(file_path, 'rb') as data:
                 self.s3_client.upload_fileobj(data, self.bucket_name, s3_key)
                 print(f"Uploaded {s3_key} to S3 bucket {self.bucket_name}")
+                os.remove(file_path)  # Delete the file after successful upload
         except Exception as e:
             print(f"Failed to upload {file_path} due to {str(e)}")
 
@@ -72,7 +74,7 @@ class S3Uploader(FileSystemEventHandler):
 
 def start_monitoring(folder_path, bucket_name, aws_access_key_id, aws_secret_access_key, region_name):
     uploader = S3Uploader(folder_path, bucket_name, aws_access_key_id, aws_secret_access_key, region_name)
-    uploader.upload_existing_files()  
+    uploader.upload_existing_files()  # Upload all existing files before starting monitoring
     observer = Observer()
     observer.schedule(uploader, folder_path, recursive=True)
     observer.start()
@@ -83,6 +85,7 @@ def start_monitoring(folder_path, bucket_name, aws_access_key_id, aws_secret_acc
     except KeyboardInterrupt:
         observer.stop()
     observer.join()
+
 
 local_folder_path = r'your-local-folder-path-which-you-have-to-monitor'
 bucket_name = 'your-bucket-name'
