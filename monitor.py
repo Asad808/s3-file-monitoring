@@ -1,6 +1,7 @@
 import os
 import re
 import boto3
+import ctypes  # Import ctypes for displaying error message
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
@@ -43,6 +44,9 @@ class S3Uploader(FileSystemEventHandler):
         format_result = verify_filename_format(file_path)
         if format_result != True:
             self.log_wrong_format(file_path)
+            os.remove(file_path)  # Delete the file before showing the error message
+            ctypes.windll.user32.MessageBoxW(0, f"Incorrect file naming: {file_path}", "Error", 1)
+            raise Exception(f"Stopping due to incorrect file naming: {file_path}")
         if self.is_file_in_bucket(file_path):
             print(f"File already exists in the bucket and will be deleted: {file_path}")
             os.remove(file_path)  # Delete the file if it already exists in the bucket
@@ -86,12 +90,10 @@ def start_monitoring(folder_path, bucket_name, aws_access_key_id, aws_secret_acc
         observer.stop()
     observer.join()
 
-
 local_folder_path = r'your-local-folder-path-which-you-have-to-monitor'
 bucket_name = 'your-bucket-name'
 aws_access_key_id = 'AKIAWR******73CF'
 aws_secret_access_key = 'e9**********TpebK'
 region_name = 'ap-south-1'
-
 
 start_monitoring(local_folder_path, bucket_name, aws_access_key_id, aws_secret_access_key, region_name)
