@@ -1,6 +1,7 @@
 import os
 import re
 import boto3
+import sys
 import ctypes  # Import ctypes for displaying error message
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -44,9 +45,9 @@ class S3Uploader(FileSystemEventHandler):
         format_result = verify_filename_format(file_path)
         if format_result != True:
             self.log_wrong_format(file_path)
-            os.remove(file_path)  # Delete the file before showing the error message
             ctypes.windll.user32.MessageBoxW(0, f"Incorrect file naming: {file_path}", "Error", 1)
-            raise Exception(f"Stopping due to incorrect file naming: {file_path}")
+            print(f"Stopping due to incorrect file naming: {file_path}")
+            sys.exit(1)  # Exit the script
         if self.is_file_in_bucket(file_path):
             print(f"File already exists in the bucket and will be deleted: {file_path}")
             os.remove(file_path)  # Delete the file if it already exists in the bucket
