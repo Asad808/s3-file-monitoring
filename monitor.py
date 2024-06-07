@@ -11,8 +11,6 @@ def verify_filename_format(filename):
     print("Base part for checking:", base_part)
     pattern = r"^(?:\d{1,5})-(?:[1-5]|prep)-(?:[abcd]|null)-(?:math|english|urdu)$"
     if re.match(pattern, base_part):
-        if "null" in base_part:
-            return 'null_detected'
         return True
     return False
 
